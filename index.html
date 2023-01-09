@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <title>Document</title>
+  <style>
+    body {
+      background: linear-gradient(180deg, black 50%, gray);
+      height: 100vh;
+      overflow: hidden;
+    }
+    .dropdown-toggle:after{
+      display: none;
+    }
+    .task{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .main_header{
+      font-family: 'Oswald', sans-serif;
+      font-size: 50px;
+      color: goldenrod;
+    }
+    .card,.card-header{
+      background-color: transparent;
+      outline-style: solid;
+      outline-color: gray;
+    }
+    .fa-ellipsis{
+      color: white;
+    }
+    .form-control:focus {
+      color: white; !important;
+    }
+    .task label.checked{
+      text-decoration:line-through;
+    }
+    .controls{
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+    .filters span.active{
+      color: goldenrod;
+    }
+    .filters span{
+      margin-right: 15px;
+      font-size: 15px;
+      column-rule-color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="row d-flex justify-content-center m-5">
+    <div class="col-6 text-light ">
+      <div>
+        <p class="lead text-center main_header">To-Do-App</p>
+      </div>
+      <div class="card">
+        <div class="card-header controls">
+          <div class="filters ">
+            <span class="active" id="all">All</span>
+            <span id="pending">Yapılacaklar</span>
+            <span id="completed">Tamamlananlar</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <form>
+            <div class="input-group">
+              <input type="text" name="txtTaskName" id="txtTaskName" class="form-control bg-transparent">
+              <button type="submit" class="btn btn-outline-light" id="btnAddNewTask">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card mt-3">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-6 mt-1">
+              <h1 class="lead">Todo List</h1>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-danger btn-sm float-end" id="btnClear">
+                Clean
+              </button>
+            </div>
+          </div>
+        </div>
+        <ul id="task-list" class="list-group list-group-flush">
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  "use strict";
+
+  let gorevListesi = [];
+
+  if (localStorage.getItem("gorevListesi") != null){
+    gorevListesi = JSON.parse(localStorage.getItem("gorevListesi"));
+  }
+
+  let editId;
+  let isEditTask = false;
+  const taskInput =  document.querySelector("#txtTaskName");
+  const clearBtn = document.querySelector("#btnClear");
+  const filters = document.querySelectorAll(".filters span");
+  displayTask("all");
+
+  function displayTask(filter){
+    let ul = document.getElementById("task-list");
+    ul.innerHTML ="";
+
+    if (gorevListesi.length === 0) {
+      ul.innerHTML ="<p class= 'p-3 m-0'> Görev Listeniz Boş</p>"
+    }
+    else{
+      for (let gorev of gorevListesi) {
+        let completed = gorev.durum === "completed" ? "checked" : "";
+        if (filter === gorev.durum || filter === "all") {
+
+          let li = `
+           <li class="task list-group-item bg-transparent text-light">
+           <div class="form-check">
+              <input type="checkbox" onclick="updateStatus(this)" id="${gorev.id}" class="form-check-input" ${completed}>
+              <label class="form-check-label ${completed}" for="${gorev.id}">${gorev.gorevAdi}</label>
+           </div>
+          <div class="dropdown">
+            <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa-solid fa-ellipsis"></i>
+            </button>
+            <ul class="dropdown-menu">
+              <li><a onclick="deleteTask(${gorev.id})" class="dropdown-item" href="#"><i class="fa-solid fa-trash-can"></i>Delete</a></li>
+              <li><a onclick='editTask(${gorev.id},"${gorev.gorevAdi}")' class="dropdown-item" href="#"><i class="fa-solid fa-pen"></i>Costumize</a></li>
+            </ul>
+         </div>
+         </li>
+    `;
+          ul.insertAdjacentHTML("beforeend",li);
+        }
+      }
+
+    }
+
+  }
+
+  document.querySelector("#btnAddNewTask").addEventListener("click",newTask);
+  document.querySelector("#btnAddNewTask").addEventListener("keypress",function (){
+    if (event.key === "Enter"){
+      document.getElementById("#btnAddNewTask").click();
+    }
+  })
+  for (let span of filters){
+    span.addEventListener("click",function (){
+      document.querySelector("span.active").classList.remove("active");
+      span.classList.add("active");
+      displayTask(span.id);
+    })
+  }
+
+  clearBtn.addEventListener("click",function (){
+    gorevListesi.splice(0,gorevListesi.length);
+    localStorage.setItem("gorevListesi",JSON.stringify(gorevListesi));
+    displayTask("all");
+  });
+
+  function newTask (event) {
+
+    if (taskInput.value === ""){
+      alert("Please Fill In The Blank!")
+    }
+    else{
+      if (!isEditTask){
+        //ekleme
+        gorevListesi.push({"id":gorevListesi.length + 1 ,"gorevAdi":taskInput.value,"durum":"pending"});
+      }
+      else {
+        //güncelleme
+        for (let gorev of gorevListesi){
+          if (gorev.id == editId){
+            gorev.gorevAdi = taskInput.value;
+          }
+          isEditTask = false;
+        }
+      }
+      taskInput.value = "";
+      displayTask(document.querySelector("span.active").id);
+      localStorage.setItem("gorevListesi",JSON.stringify(gorevListesi));
+    }
+
+    event.preventDefault();
+  }
+
+  function deleteTask(id){
+    let deletedId;
+    for (let index in gorevListesi) {
+      if (gorevListesi[index].id == id) {
+        deletedId = index;
+      }
+    }
+    gorevListesi.splice(deletedId, 1);
+    displayTask(document.querySelector("span.active").id);
+    localStorage.setItem("gorevListesi",JSON.stringify(gorevListesi));
+  }
+
+  function editTask(taskId,taskName){
+    editId = taskId;
+    isEditTask = true;
+    taskInput.value = taskName;
+    taskInput.focus();
+    taskInput.classList.add("active");
+
+    console.log("editId", editId);
+    console.log("mod", isEditTask);
+  }
+
+  function updateStatus(selectedTask){
+    //console.log(selectedTask.parentElement.lastElementChild);
+    let label = selectedTask.nextElementSibling;
+    let durum;
+    if (selectedTask.checked){
+      label.classList.add("checked");
+      durum = "completed";
+    }else {
+      label.classList.remove("checked");
+      durum = "pending";
+    }
+    for (let gorev of gorevListesi){
+      if (gorev.id == selectedTask.id){
+        gorev.durum = durum;
+      }
+    }
+    displayTask(document.querySelector("span.active").id);
+    localStorage.setItem("gorevListesi",JSON.stringify(gorevListesi));
+  }
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+</body>
+</html>
